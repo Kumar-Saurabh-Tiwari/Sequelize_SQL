@@ -42,6 +42,9 @@
    The script then reads all rows with `User.findAll()` and reads the inserted
    row by its primary key with `User.findByPk(user.id)`.
 
+   Finally, it updates the sample user's name with `user.update()` and reads
+   the updated record again by primary key.
+
 ## Verify in MySQL Workbench
 
 Refresh the **Schemas** panel, expand `sequelize_demo` (or the database named
@@ -58,6 +61,14 @@ To view the inserted record:
 
 ```sql
 SELECT * FROM Users WHERE email = 'ada.lovelace@example.com';
+```
+
+The update performed by Sequelize is equivalent to:
+
+```sql
+UPDATE Users
+SET name = 'Ada Byron Lovelace'
+WHERE id = 6;
 ```
 
 The equivalent SQL reads are:
