@@ -1,100 +1,117 @@
 require("dotenv").config();
 
-const { DataTypes, Sequelize } = require("sequelize");
+const express = require("express");
+const { Op } = require("sequelize");
+const { sequelize, User, Bus, Booking, Payment } = require("./models");
 
-const requiredEnvironmentVariables = ["DB_NAME", "DB_USER", "DB_PASSWORD"];
-const missingEnvironmentVariables = requiredEnvironmentVariables.filter(
-  (variableName) => !process.env[variableName]
-);
+const app = express();
+const port = Number(process.env.PORT || 3000);
 
-if (missingEnvironmentVariables.length > 0) {
-  throw new Error(
-    `Missing required environment variables: ${missingEnvironmentVariables.join(", ")}`
-  );
+app.use(express.json());
+
+app.post("/users", async (request, response, next) => {
+  try {
+    const user = await User.create(request.body);
+    response.status(201).json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/users", async (request, response, next) => {
+  try {
+    const users = await User.findAll({ order: [["id", "ASC"]] });
+    response.json(users);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/buses", async (request, response, next) => {
+  try {
+    const bus = await Bus.create(request.body);
+    response.status(201).json(bus);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/buses/available/:seats", async (request, response, next) => {
+  const seats = Number(request.params.seats);
+  if (!Number.isInteger(seats) || seats < 0) {
+    response.status(400).json({ error: "seats must be a non-negative integer" });
+    return;
+  }
+
+  try {
+    const buses = await Bus.findAll({
+      where: { availableSeats: { [Op.gt]: seats } },
+      order: [["id", "ASC"]],
+    });
+    response.json(buses);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.use((error, request, response, next) => {
+  if (error.name === "SequelizeValidationError" || error.name === "SequelizeUniqueConstraintError") {
+    response.status(400).json({ error: error.errors.map((item) => item.message) });
+    return;
+  }
+  console.error(error);
+  response.status(500).json({ error: "Internal server error" });
+});
+
+async function seedData() {
+  const users = [
+    { name: "Ada Lovelace", email: "ada.lovelace@example.com" },
+    { name: "Grace Hopper", email: "grace.hopper@example.com" },
+    { name: "Alan Turing", email: "alan.turing@example.com" },
+  ];
+  const buses = [
+    { busNumber: "BUS-101", totalSeats: 40, availableSeats: 25 },
+    { busNumber: "BUS-202", totalSeats: 30, availableSeats: 8 },
+  ];
+
+  for (const user of users) {
+    const existingUser = await User.findOne({ where: { email: user.email } });
+    if (!existingUser) {
+      await User.create(user);
+    }
+  }
+  for (const bus of buses) {
+    const existingBus = await Bus.findOne({ where: { busNumber: bus.busNumber } });
+    if (!existingBus) {
+      await Bus.create(bus);
+    }
+  }
 }
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST || "localhost",
-    port: Number(process.env.DB_PORT || 3306),
-    dialect: "mysql",
-    logging: console.log,
-  }
-);
+async function start() {
+  await sequelize.authenticate();
+  await Promise.all([User.sync(), Bus.sync(), Booking.sync(), Payment.sync()]);
+  await seedData();
 
-const User = sequelize.define(
-  "User",
-  {
-    id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    name: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-    },
-    email: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
-    },
-  },
-  {
-    tableName: "Users",
-    timestamps: false,
-  }
-);
+  const users = await User.findAll({ order: [["id", "ASC"]] });
+  const availableBuses = await Bus.findAll({
+    where: { availableSeats: { [Op.gt]: 10 } },
+    order: [["id", "ASC"]],
+  });
+  console.log(`Loaded ${users.length} users.`);
+  console.log(`Found ${availableBuses.length} buses with more than 10 available seats.`);
 
-async function main() {
-  try {
-    await sequelize.authenticate();
-    console.log("MySQL connection established.");
+  app.listen(port, () => {
+    console.log(`API listening on http://localhost:${port}`);
+  });
+}
 
-    await User.sync();
-    console.log('The "Users" table is ready.');
-
-    const [user, created] = await User.findOrCreate({
-      where: { email: "ada.lovelace@example.com" },
-      defaults: { name: "Ada Lovelace" },
-    });
-    console.log(
-      created
-        ? `Inserted user: ${user.name} (${user.email}).`
-        : `User already exists: ${user.name} (${user.email}).`
-    );
-
-    await user.update({ name: "Ada Byron Lovelace" });
-    console.log(`Updated user ${user.id}: ${user.name}.`);
-
-    const users = await User.findAll({ order: [["id", "ASC"]] });
-    console.log("All users:");
-    console.table(users.map((currentUser) => currentUser.toJSON()));
-
-    const userByPrimaryKey = await User.findByPk(user.id);
-    console.log("User found by primary key:");
-    console.table(userByPrimaryKey ? [userByPrimaryKey.toJSON()] : []);
-
-    await user.destroy();
-    console.log(`Deleted user ${user.id}.`);
-
-    const deletedUser = await User.findByPk(user.id);
-    console.log(`User lookup after deletion: ${deletedUser ? "found" : "not found"}.`);
-  } catch (error) {
-    console.error(
-      "Unable to connect to MySQL, create the Users table, or complete the CRUD operations."
-    );
+if (require.main === module) {
+  start().catch((error) => {
+    console.error("Unable to initialize the Sequelize application.");
     console.error(error.message);
     process.exitCode = 1;
-  } finally {
-    await sequelize.close();
-  }
+  });
 }
 
-main();
+module.exports = { app, sequelize, User, Bus, Booking, Payment, start };

@@ -4,7 +4,6 @@
 
 - Node.js 18 or newer
 - MySQL Server running locally
-- MySQL Workbench (optional, for verification)
 
 ## Run locally
 
@@ -20,70 +19,52 @@
    npm install
    ```
 
-3. Copy `.env.example` to `.env` and set your MySQL password and, if needed, the
-   database name, user, host, or port.
+3. Copy `.env.example` to `.env` and set the MySQL password and connection
+   values.
 
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-
-4. Create the table:
+4. Start the API:
 
    ```powershell
    npm start
    ```
 
-   Sequelize authenticates the connection and creates the `Users` table if it
-   does not already exist. The table contains `id`, `name`, `email`,
-   columns. It also inserts the sample user `Ada Lovelace` with email
-   `ada.lovelace@example.com`. Re-running the command does not create a
-   duplicate because the email is unique.
+The application creates the `Users`, `Buses`, `Bookings`, and `Payments` tables,
+then inserts three users and two buses with Sequelize's `create()` method.
+Seeding is idempotent, so restarting the app does not create duplicates.
 
-   The script then reads all rows with `User.findAll()` and reads the inserted
-   row by its primary key with `User.findByPk(user.id)`.
+## API endpoints
 
-   Finally, it updates the sample user's name with `user.update()` and reads
-   the updated record again by primary key.
+The server listens on `http://localhost:3000` by default. Set `PORT` in `.env`
+to use another port.
 
-   The script then removes the sample user with `user.destroy()` and confirms
-   that `findByPk()` no longer finds the record.
+### Users
 
-## Verify in MySQL Workbench
+- `POST /users` creates a user. Example body:
 
-Refresh the **Schemas** panel, expand `sequelize_demo` (or the database named
-in `.env`), and open **Tables**. The `Users` table should be present. You can
-also run:
+  ```json
+  {
+    "name": "Katherine Johnson",
+    "email": "katherine.johnson@example.com"
+  }
+  ```
 
-```sql
-USE sequelize_demo;
-SHOW TABLES;
-DESCRIBE Users;
-```
+- `GET /users` retrieves all users.
 
-To view the inserted record:
+### Buses
 
-```sql
-SELECT * FROM Users WHERE email = 'ada.lovelace@example.com';
-```
+- `POST /buses` creates a bus. Example body:
 
-The update performed by Sequelize is equivalent to:
+  ```json
+  {
+    "busNumber": "BUS-303",
+    "totalSeats": 50,
+    "availableSeats": 35
+  }
+  ```
 
-```sql
-UPDATE Users
-SET name = 'Ada Byron Lovelace'
-WHERE id = 6;
-```
+- `GET /buses/available/:seats` retrieves buses whose available seats are
+  greater than the route parameter. For example,
+  `GET /buses/available/10` returns buses with more than 10 available seats.
 
-The delete performed by Sequelize is equivalent to:
-
-```sql
-DELETE FROM Users
-WHERE id = 6;
-```
-
-The equivalent SQL reads are:
-
-```sql
-SELECT * FROM Users ORDER BY id ASC;
-SELECT * FROM Users WHERE id = 1;
-```
+All models are exported from `src/models.js` and intentionally do not define
+associations in this phase.
