@@ -35,7 +35,9 @@
 
    Sequelize authenticates the connection and creates the `Users` table if it
    does not already exist. The table contains `id`, `name`, `email`,
-   `createdAt`, and `updatedAt` columns.
+   columns. It also inserts the sample user `Ada Lovelace` with email
+   `ada.lovelace@example.com`. Re-running the command does not create a
+   duplicate because the email is unique.
 
 ## Verify in MySQL Workbench
 
@@ -47,4 +49,10 @@ also run:
 USE sequelize_demo;
 SHOW TABLES;
 DESCRIBE Users;
+```
+
+To view the inserted record:
+
+```sql
+SELECT * FROM Users WHERE email = 'ada.lovelace@example.com';
 ```

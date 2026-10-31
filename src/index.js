@@ -48,7 +48,7 @@ const User = sequelize.define(
   },
   {
     tableName: "Users",
-    timestamps: true,
+    timestamps: false,
   }
 );
 
@@ -59,8 +59,18 @@ async function main() {
 
     await User.sync();
     console.log('The "Users" table is ready.');
+
+    const [user, created] = await User.findOrCreate({
+      where: { email: "ada.lovelace@example.com" },
+      defaults: { name: "Ada Lovelace" },
+    });
+    console.log(
+      created
+        ? `Inserted user: ${user.name} (${user.email}).`
+        : `User already exists: ${user.name} (${user.email}).`
+    );
   } catch (error) {
-    console.error("Unable to connect to MySQL or create the Users table.");
+    console.error("Unable to connect to MySQL, create the Users table, or insert the user.");
     console.error(error.message);
     process.exitCode = 1;
   } finally {
