@@ -39,6 +39,9 @@
    `ada.lovelace@example.com`. Re-running the command does not create a
    duplicate because the email is unique.
 
+   The script then reads all rows with `User.findAll()` and reads the inserted
+   row by its primary key with `User.findByPk(user.id)`.
+
 ## Verify in MySQL Workbench
 
 Refresh the **Schemas** panel, expand `sequelize_demo` (or the database named
@@ -55,4 +58,11 @@ To view the inserted record:
 
 ```sql
 SELECT * FROM Users WHERE email = 'ada.lovelace@example.com';
+```
+
+The equivalent SQL reads are:
+
+```sql
+SELECT * FROM Users ORDER BY id ASC;
+SELECT * FROM Users WHERE id = 1;
 ```

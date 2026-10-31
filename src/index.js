@@ -69,8 +69,18 @@ async function main() {
         ? `Inserted user: ${user.name} (${user.email}).`
         : `User already exists: ${user.name} (${user.email}).`
     );
+
+    const users = await User.findAll({ order: [["id", "ASC"]] });
+    console.log("All users:");
+    console.table(users.map((currentUser) => currentUser.toJSON()));
+
+    const userByPrimaryKey = await User.findByPk(user.id);
+    console.log("User found by primary key:");
+    console.table(userByPrimaryKey ? [userByPrimaryKey.toJSON()] : []);
   } catch (error) {
-    console.error("Unable to connect to MySQL, create the Users table, or insert the user.");
+    console.error(
+      "Unable to connect to MySQL, create the Users table, insert the user, or read users."
+    );
     console.error(error.message);
     process.exitCode = 1;
   } finally {
