@@ -1,22 +1,28 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = new Sequelize('database', 'username', 'password', {
   host: 'localhost',
-  dialect: 'mysql' // or your database dialect
+  dialect: 'mysql' 
 });
 
-// Define User Model
-const User = sequelize.define('User', {
-  name: { type: DataTypes.STRING, allowNull: false }
+// 1. Define Student Model
+const Student = sequelize.define('Student', {
+  name: { 
+    type: DataTypes.STRING, 
+    allowNull: false 
+  }
 });
 
-// Define Post Model
-const Post = sequelize.define('Post', {
-  title: { type: DataTypes.STRING, allowNull: false },
-  content: { type: DataTypes.TEXT, allowNull: false }
+// 2. Define Course Model
+const Course = sequelize.define('Course', {
+  title: { 
+    type: DataTypes.STRING, 
+    allowNull: false 
+  }
 });
 
-// Define One-to-Many Association
-User.hasMany(Post, { foreignKey: 'userId' });
-Post.belongsTo(User, { foreignKey: 'userId' });
+// 3. Define Many-to-Many Association
+// This automatically creates a junction table named 'StudentCourses'
+Student.belongsToMany(Course, { through: 'StudentCourses' });
+Course.belongsToMany(Student, { through: 'StudentCourses' });
 
-module.exports = { sequelize, User, Post };
+module.exports = { sequelize, Student, Course };
