@@ -80,9 +80,15 @@ async function main() {
     const userByPrimaryKey = await User.findByPk(user.id);
     console.log("User found by primary key:");
     console.table(userByPrimaryKey ? [userByPrimaryKey.toJSON()] : []);
+
+    await user.destroy();
+    console.log(`Deleted user ${user.id}.`);
+
+    const deletedUser = await User.findByPk(user.id);
+    console.log(`User lookup after deletion: ${deletedUser ? "found" : "not found"}.`);
   } catch (error) {
     console.error(
-      "Unable to connect to MySQL, create the Users table, insert, update, or read users."
+      "Unable to connect to MySQL, create the Users table, or complete the CRUD operations."
     );
     console.error(error.message);
     process.exitCode = 1;

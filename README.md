@@ -45,6 +45,9 @@
    Finally, it updates the sample user's name with `user.update()` and reads
    the updated record again by primary key.
 
+   The script then removes the sample user with `user.destroy()` and confirms
+   that `findByPk()` no longer finds the record.
+
 ## Verify in MySQL Workbench
 
 Refresh the **Schemas** panel, expand `sequelize_demo` (or the database named
@@ -68,6 +71,13 @@ The update performed by Sequelize is equivalent to:
 ```sql
 UPDATE Users
 SET name = 'Ada Byron Lovelace'
+WHERE id = 6;
+```
+
+The delete performed by Sequelize is equivalent to:
+
+```sql
+DELETE FROM Users
 WHERE id = 6;
 ```
 
