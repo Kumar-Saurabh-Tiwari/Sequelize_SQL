@@ -36,6 +36,43 @@ app.post("/buses", async (request, response, next) => {
   }
 });
 
+app.post("/bookings", async (request, response, next) => {
+  try {
+    const booking = await Booking.create(request.body);
+    response.status(201).json(booking);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/users/:id/bookings", async (request, response, next) => {
+  try {
+    const bookings = await Booking.findAll({
+      where: { userId: request.params.id },
+      include: [{ model: Bus, as: "bus", attributes: ["busNumber"] }],
+      order: [["id", "ASC"]],
+      attributes: ["id", "seatNumber"],
+    });
+    response.json(bookings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/buses/:id/bookings", async (request, response, next) => {
+  try {
+    const bookings = await Booking.findAll({
+      where: { busId: request.params.id },
+      include: [{ model: User, as: "user", attributes: ["name", "email"] }],
+      order: [["id", "ASC"]],
+      attributes: ["id", "seatNumber"],
+    });
+    response.json(bookings);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/buses/available/:seats", async (request, response, next) => {
   const seats = Number(request.params.seats);
   if (!Number.isInteger(seats) || seats < 0) {
@@ -86,11 +123,32 @@ async function seedData() {
       await Bus.create(bus);
     }
   }
+
+  const seededBookings = [
+    { userEmail: "ada.lovelace@example.com", busNumber: "BUS-101", seatNumber: 1 },
+    { userEmail: "grace.hopper@example.com", busNumber: "BUS-202", seatNumber: 1 },
+  ];
+  for (const booking of seededBookings) {
+    const user = await User.findOne({ where: { email: booking.userEmail } });
+    const bus = await Bus.findOne({ where: { busNumber: booking.busNumber } });
+    const existingBooking = await Booking.findOne({
+      where: { userId: user.id, busId: bus.id, seatNumber: booking.seatNumber },
+    });
+    if (!existingBooking) {
+      await Booking.create({
+        userId: user.id,
+        busId: bus.id,
+        seatNumber: booking.seatNumber,
+      });
+    }
+  }
 }
 
 async function start() {
   await sequelize.authenticate();
-  await Promise.all([User.sync(), Bus.sync(), Booking.sync(), Payment.sync()]);
+  await Promise.all([User.sync(), Bus.sync()]);
+  await Booking.sync({ alter: true });
+  await Payment.sync();
   await seedData();
 
   const users = await User.findAll({ order: [["id", "ASC"]] });

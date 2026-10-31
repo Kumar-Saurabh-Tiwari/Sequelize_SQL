@@ -82,6 +82,12 @@ const Booking = sequelize.define(
     },
     userId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, field: "user_id" },
     busId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, field: "bus_id" },
+    seatNumber: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      field: "seat_number",
+      validate: { min: 1 },
+    },
     bookingDate: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -129,5 +135,10 @@ const Payment = sequelize.define(
   },
   { tableName: "Payments", timestamps: false }
 );
+
+User.hasMany(Booking, { foreignKey: "userId", as: "bookings" });
+Booking.belongsTo(User, { foreignKey: "userId", as: "user" });
+Bus.hasMany(Booking, { foreignKey: "busId", as: "bookings" });
+Booking.belongsTo(Bus, { foreignKey: "busId", as: "bus" });
 
 module.exports = { sequelize, User, Bus, Booking, Payment };
